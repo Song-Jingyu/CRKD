@@ -91,9 +91,9 @@
           <h1 class="title is-1 publication-title">CRKD: Enhanced Camera-Radar Object Detection with Cross-modality Knowledge Distillation</h1>
           <div class="is-size-5 publication-authors">
             <span class="author-block">
-              <a href="https://keunhong.com">Lingjun Zhao</a><sup>1,*</sup>,</span>
+              <a href="https://keunhong.com">Lingjun Zhao</a><sup>1*</sup>,</span>
             <span class="author-block">
-              <a href="https://utkarshsinha.com">Jingyu Song</a><sup>1,*,†</sup>,</span>
+              <a href="https://utkarshsinha.com">Jingyu Song</a><sup>1*✉</sup>,</span>
             <span class="author-block">
               <a href="https://jonbarron.info">Katherine A. Skinner</a><sup>1</sup>,
             </span>
@@ -113,7 +113,7 @@
 
           <div class="is-size-5 publication-authors">
             <span class="author-block"><sup>*</sup>Equal Contribution</span>
-            <span class="author-block"><sup>*</sup>Corresponding Author</span>
+            <!-- <span class="author-block"><sup>†</sup>Corresponding Author</span> -->
             <span class="author-block"><sup>1</sup>University of Michigan,</span>
           </div>
 
@@ -139,7 +139,7 @@
                 </a>
               </span>
               <!-- Video Link. -->
-              <span class="link-block">
+              <!-- <span class="link-block">
                 <a href="https://www.youtube.com/watch?v=MrKrnHhk8IA"
                    class="external-link button is-normal is-rounded is-dark">
                   <span class="icon">
@@ -147,10 +147,10 @@
                   </span>
                   <span>Video</span>
                 </a>
-              </span>
+              </span> -->
               <!-- Code Link. -->
               <span class="link-block">
-                <a href="https://github.com/google/nerfies"
+                <a href="https://github.com/Song-Jingyu/CRKD"
                    class="external-link button is-normal is-rounded is-dark">
                   <span class="icon">
                       <i class="fab fa-github"></i>
@@ -159,7 +159,7 @@
                   </a>
               </span>
               <!-- Dataset Link. -->
-              <span class="link-block">
+              <!-- <span class="link-block">
                 <a href="https://github.com/google/nerfies/releases/tag/0.1"
                    class="external-link button is-normal is-rounded is-dark">
                   <span class="icon">
@@ -167,7 +167,7 @@
                   </span>
                   <span>Data</span>
                   </a>
-            </div>
+            </div> -->
 
           </div>
         </div>
@@ -179,21 +179,21 @@
 <section class="hero teaser">
   <div class="container is-max-desktop">
     <div class="hero-body">
-      <video id="teaser" autoplay muted loop playsinline height="100%">
+      <!-- <video id="teaser" autoplay muted loop playsinline height="100%">
         <source src="./static/videos/teaser.mp4"
                 type="video/mp4">
-      </video>
+      </video> -->
+      <!-- add image docs/static/images/pitch.svg-->
+      <img src="./static/images/pitch.svg" alt="CRKD" style="width: 100%; height: auto;">
       <h2 class="subtitle has-text-centered">
-        <span class="dnerf">Nerfies</span> turns selfie videos from your phone into
-        free-viewpoint
-        portraits.
+        We propose CRKD to conduct a novel cross-modality knowledge distillation path from LiDAR-camera teacher to camera-radar student.
       </h2>
     </div>
   </div>
 </section>
 
 
-<section class="hero is-light is-small">
+<!-- <section class="hero is-light is-small">
   <div class="hero-body">
     <div class="container">
       <div id="results-carousel" class="carousel results-carousel">
@@ -248,7 +248,7 @@
       </div>
     </div>
   </div>
-</section>
+</section> -->
 
 
 <section class="section">
@@ -258,33 +258,13 @@
       <div class="column is-four-fifths">
         <h2 class="title is-3">Abstract</h2>
         <div class="content has-text-justified">
-          <p>
-            We present the first method capable of photorealistically reconstructing a non-rigidly
-            deforming scene using photos/videos captured casually from mobile phones.
-          </p>
-          <p>
-            Our approach augments neural radiance fields
-            (NeRF) by optimizing an
-            additional continuous volumetric deformation field that warps each observed point into a
-            canonical 5D NeRF.
-            We observe that these NeRF-like deformation fields are prone to local minima, and
-            propose a coarse-to-fine optimization method for coordinate-based models that allows for
-            more robust optimization.
-            By adapting principles from geometry processing and physical simulation to NeRF-like
-            models, we propose an elastic regularization of the deformation field that further
-            improves robustness.
-          </p>
-          <p>
-            We show that <span class="dnerf">Nerfies</span> can turn casually captured selfie
-            photos/videos into deformable NeRF
-            models that allow for photorealistic renderings of the subject from arbitrary
-            viewpoints, which we dub <i>"nerfies"</i>. We evaluate our method by collecting data
-            using a
-            rig with two mobile phones that take time-synchronized photos, yielding train/validation
-            images of the same pose at different viewpoints. We show that our method faithfully
-            reconstructs non-rigidly deforming scenes and reproduces unseen views with high
-            fidelity.
-          </p>
+          In the field of 3D object detection for autonomous driving, LiDAR-Camera (LC) fusion is the top-performing sensor configuration. 
+          Still, LiDAR is relatively high cost, which hinders adoption of this technology for consumer automobiles. 
+          Alternatively, camera and radar are commonly deployed on vehicles already on the road today, but performance of Camera-Radar (CR) fusion falls behind LC fusion. 
+          In this work, we propose CRKD to bridge the performance gap between LC and CR detectors with a novel cross-modality knowledge distillation (KD) framework. 
+          We use the Bird's-Eye-View (BEV) representation as the shared feature space to enable effective knowledge distillation. 
+          To accommodate the unique cross-modality KD path, we propose four distillation losses to help the student learn crucial features from the teacher model.
+          We present extensive evaluations on the nuScenes dataset to demonstrate the effectiveness of the proposed CRKD framework.
         </div>
       </div>
     </div>
