@@ -1,0 +1,5 @@
+model:
+  fuser:
+    type: GatedFuser
+    in_channels: [80, 256]
+    out_channels: 256

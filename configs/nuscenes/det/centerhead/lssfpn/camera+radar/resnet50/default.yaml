@@ -1,0 +1,96 @@
+voxel_size: [0.075, 0.075, 0.2]
+
+image_size: [256, 704]
+
+model:
+  encoders:
+    camera:
+      backbone:
+        type: ResNet
+        depth: 50
+        num_stages: 4
+        out_indices: [0, 1, 2, 3] 
+        norm_cfg:
+          type: BN2d
+          requires_grad: true
+        norm_eval: false
+        init_cfg:
+          type: Pretrained
+          checkpoint: torchvision://resnet50
+      neck:
+        type: SECONDFPN
+        in_channels: [256, 512, 1024, 2048]
+        out_channels: [128, 128, 128, 128]
+        upsample_strides: [0.5, 1, 2, 4]
+      vtransform:
+        type: LSSTransform
+        in_channels: 512
+        out_channels: 80
+        image_size: ${image_size}
+        feature_size: ${[image_size[0] // 8, image_size[1] // 8]}
+        xbound: [-54.0, 54.0, 0.6] # 0.6 is radar voxel size
+        ybound: [-54.0, 54.0, 0.6]
+        zbound: [-10.0, 10.0, 20.0]
+        dbound: [1.0, 60.0, 1.0]
+        downsample: 1 # (batchsize, 64, 180, 180)
+  fuser:
+    type: GatedFuser
+    in_channels: [80, 256]
+    out_channels: 256
+  decoder:
+    backbone:
+      type: GeneralizedResNet
+      in_channels: 256
+      blocks:
+        - [2, 128, 2]
+        - [2, 256, 2]
+        - [2, 512, 1]
+    neck:
+      type: LSSFPN
+      in_indices: [-1, 0]
+      in_channels: [512, 128]
+      out_channels: 256
+      scale_factor: 2
+  heads:
+    object:
+      train_cfg:
+        code_weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+
+optimizer:
+  paramwise_cfg:
+    custom_keys:
+      absolute_pos_embed: 
+        decay_mult: 0
+      relative_position_bias_table:
+        decay_mult: 0
+      # encoders.camera.backbone:
+      #   lr_mult: 0.1
+
+
+# lr_config:
+#   policy: cyclic
+#   target_ratio: 5.0
+#   cyclic_times: 1
+#   step_ratio_up: 0.4
+
+# momentum_config:
+#   policy: cyclic
+#   cyclic_times: 1
+#   step_ratio_up: 0.4
+
+data:
+  samples_per_gpu: 4
+  workers_per_gpu: 8
+
+
+log_config:
+  interval: 50
+  hooks:
+    -
+      type: TextLoggerHook
+    -
+      type: TensorboardLoggerHook
+    -
+      type: WandbLoggerHook
+      init_kwargs: {'project': 'CRKD', 'name': 'CR_80_256_256_2x8_gated_resnet_32_88_4x4'}

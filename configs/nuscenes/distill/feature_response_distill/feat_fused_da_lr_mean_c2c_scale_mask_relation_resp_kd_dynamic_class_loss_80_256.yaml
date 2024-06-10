@@ -1,0 +1,469 @@
+# Detection Space
+voxel_size: [0.075, 0.075, 0.2]
+point_cloud_range: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
+
+# Data
+data:
+  samples_per_gpu: 2
+  workers_per_gpu: 8
+  train:
+    dataset:
+      ann_file: /mnt/ws-frb/users/lingjunz/nuScenes/data/dataset/nuscenes_old_infos_train.pkl
+  val:
+    ann_file: /mnt/ws-frb/users/lingjunz/nuScenes/data/dataset/nuscenes_old_infos_val.pkl
+  test:
+    ann_file: /mnt/ws-frb/users/lingjunz/nuScenes/data/dataset/nuscenes_old_infos_val.pkl
+
+# Image size
+image_size: [256, 704]
+
+# Augment
+augment2d:
+  resize: [[0.38, 0.55], [0.48, 0.48]]
+
+augment3d:
+  scale: [0.9, 1.1]
+  rotate: [0, 0]
+  translate: 0.5
+
+# Model
+model:
+  type: BEVResponseDistillerFusedLRC2CMaskScaleRelation
+  # Teacher
+  # encoders
+  encoders:
+    camera:
+      backbone:
+        type: SwinTransformer
+        embed_dims: 96
+        depths: [2, 2, 6, 2]
+        num_heads: [3, 6, 12, 24]
+        window_size: 7
+        mlp_ratio: 4
+        qkv_bias: true
+        qk_scale: null
+        drop_rate: 0.
+        attn_drop_rate: 0.
+        drop_path_rate: 0.2
+        patch_norm: true
+        out_indices: [1, 2, 3]
+        with_cp: false
+        convert_weights: true
+        init_cfg:
+          type: Pretrained
+          checkpoint: https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth
+      neck:
+        type: GeneralizedLSSFPN
+        in_channels: [192, 384, 768]
+        out_channels: 256
+        start_level: 0
+        num_outs: 3
+        norm_cfg:
+          type: BN2d
+          requires_grad: true
+        act_cfg:
+          type: ReLU
+          inplace: true
+        upsample_cfg:
+          mode: bilinear
+          align_corners: false
+      vtransform:
+        type: DepthLSSTransform
+        in_channels: 256
+        out_channels: 80
+        image_size: ${image_size}
+        feature_size: ${[image_size[0] // 8, image_size[1] // 8]}
+        xbound: [-54.0, 54.0, 0.3]
+        ybound: [-54.0, 54.0, 0.3]
+        zbound: [-10.0, 10.0, 20.0]
+        dbound: [1.0, 60.0, 0.5]
+        downsample: 2
+    lidar:
+      voxelize:
+        max_num_points: 10
+        point_cloud_range: ${point_cloud_range}
+        voxel_size: ${voxel_size}
+        max_voxels: [120000, 160000]
+      backbone:
+        type: SparseEncoder
+        in_channels: 5
+        sparse_shape: [1440, 1440, 41]
+        output_channels: 128
+        order:
+          - conv
+          - norm
+          - act
+        encoder_channels:
+          - [16, 16, 32]
+          - [32, 32, 64]
+          - [64, 64, 128]
+          - [128, 128]
+        encoder_paddings:
+          - [0, 0, 1]
+          - [0, 0, 1]
+          - [0, 0, [1, 1, 0]]
+          - [0, 0]
+        block_type: basicblock
+  # fuser
+  fuser:
+    type: GatedFuser
+    in_channels: [80, 256]
+    out_channels: 256
+  # decoder
+  decoder:
+    backbone:
+      type: GeneralizedResNet
+      in_channels: 256
+      blocks:
+        - [2, 128, 2]
+        - [2, 256, 2]
+        - [2, 512, 1]
+    neck:
+      type: LSSFPN
+      in_indices: [-1, 0]
+      in_channels: [512, 128]
+      out_channels: 256
+      scale_factor: 2
+  # heads
+  heads:
+    object:
+      type: CenterHead
+      in_channels: 256
+      train_cfg:
+        point_cloud_range: ${point_cloud_range}
+        grid_size: [1440, 1440, 41]
+        voxel_size: ${voxel_size} # Attention!!
+        out_size_factor: 8
+        dense_reg: 1
+        gaussian_overlap: 0.1
+        max_objs: 500
+        min_radius: 2
+        code_weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2]
+      test_cfg:
+        post_center_limit_range: [-61.2, -61.2, -10.0, 61.2, 61.2, 10.0]
+        grid_size: [1440, 1440, 41]
+        max_per_img: 500
+        max_pool_nms: false
+        min_radius: [4, 12, 10, 1, 0.85, 0.175]
+        score_threshold: 0.1
+        out_size_factor: 8
+        voxel_size: ${voxel_size[:2]}
+        nms_type: rotate
+        pre_max_size: 1000
+        post_max_size: 83
+        nms_thr: 0.2
+        nms_type:
+          - circle
+          - rotate
+          - rotate
+          - circle
+          - rotate
+          - rotate
+        nms_scale:
+          - [1.0]
+          - [1.0, 1.0]
+          - [1.0, 1.0]
+          - [1.0]
+          - [1.0, 1.0]
+          - [2.5, 4.0]
+      tasks:
+        - ["car"]
+        - ["truck", "construction_vehicle"]
+        - ["bus", "trailer"]
+        - ["barrier"]
+        - ["motorcycle", "bicycle"]
+        - ["pedestrian", "traffic_cone"]
+      common_heads:
+        reg: [2, 2]
+        height: [1, 2]
+        dim: [3, 2]
+        rot: [2, 2]
+        vel: [2, 2]
+      share_conv_channel: 64
+      bbox_coder:
+        type: CenterPointBBoxCoder
+        pc_range: ${point_cloud_range}
+        post_center_range: [-61.2, -61.2, -10.0, 61.2, 61.2, 10.0]
+        max_num: 500
+        score_threshold: 0.1
+        out_size_factor: 8
+        voxel_size: ${voxel_size[:2]}
+        code_size: 9
+      separate_head:
+        type: SeparateHead
+        init_bias: -2.19
+        final_kernel: 3
+      loss_cls:
+        type: GaussianFocalLoss
+        reduction: mean
+      loss_bbox:
+        type: L1Loss
+        reduction: mean
+        loss_weight: 0.25
+      norm_bbox: true
+  
+  # Student
+  encoders_student:
+    lidar: null
+    camera:
+      backbone:
+        type: SwinTransformer
+        embed_dims: 96
+        depths: [2, 2, 6, 2]
+        num_heads: [3, 6, 12, 24]
+        window_size: 7
+        mlp_ratio: 4
+        qkv_bias: true
+        qk_scale: null
+        drop_rate: 0.
+        attn_drop_rate: 0.
+        drop_path_rate: 0.2
+        patch_norm: true
+        out_indices: [1, 2, 3]
+        with_cp: false
+        convert_weights: true
+        init_cfg:
+          type: Pretrained
+          checkpoint: https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth
+      neck:
+        type: GeneralizedLSSFPN
+        in_channels: [192, 384, 768]
+        out_channels: 512
+        start_level: 0
+        num_outs: 3
+        norm_cfg:
+          type: BN2d
+          requires_grad: true
+        act_cfg:
+          type: ReLU
+          inplace: true
+        upsample_cfg:
+          mode: bilinear
+          align_corners: false
+      vtransform:
+        type: LSSTransform
+        in_channels: 512
+        out_channels: 80
+        image_size: ${image_size}
+        feature_size: ${[image_size[0] // 8, image_size[1] // 8]}
+        xbound: [-54.0, 54.0, 0.6]
+        ybound: [-54.0, 54.0, 0.6]
+        zbound: [-10.0, 10.0, 20.0]
+        dbound: [1.0, 60.0, 1.0]
+        downsample: 1
+    radar:
+      voxelize_reduce: false
+      voxelize:
+        max_num_points: 20
+        point_cloud_range: ${point_cloud_range}
+        voxel_size: ${radar_voxel_size}
+        max_voxels: [30000, 60000]
+      backbone:
+        type: RadarEncoderCalib
+        pts_voxel_encoder:
+          type: RadarFeatureNet
+          in_channels: 45
+          feat_channels: [256, 256, 256, 256]
+          with_distance: false
+          point_cloud_range: ${point_cloud_range}
+          voxel_size: ${radar_voxel_size}
+          norm_cfg:
+            type: BN1d
+            eps: 1.0e-3
+            momentum: 0.01
+        pts_middle_encoder:
+          type: PointPillarsScatter
+          in_channels: 256
+          output_shape: [180, 180]
+        pts_bev_encoder: null
+        distill_caliber:
+          dilated: false
+
+  # fuser
+  fuser_student:
+    type: GatedFuser
+    in_channels: [80, 256]
+    out_channels: 256
+  # decoder
+  decoder_student:
+    backbone:
+      type: GeneralizedResNet
+      in_channels: 256
+      blocks:
+        - [2, 128, 2]
+        - [2, 256, 2]
+        - [2, 512, 1]
+    neck:
+      type: LSSFPN
+      in_indices: [-1, 0]
+      in_channels: [512, 128]
+      out_channels: 256
+      scale_factor: 2
+  # heads
+  heads_student:
+    object:
+      type: CenterHead
+      in_channels: 256
+      train_cfg:
+        point_cloud_range: ${point_cloud_range}
+        grid_size: [1440, 1440, 1]
+        voxel_size: ${voxel_size}
+        out_size_factor: 8
+        dense_reg: 1
+        gaussian_overlap: 0.1
+        max_objs: 500
+        min_radius: 2
+        code_weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+      test_cfg:
+        post_center_limit_range: [-61.2, -61.2, -10.0, 61.2, 61.2, 10.0]
+        max_per_img: 500
+        max_pool_nms: false
+        min_radius: [4, 12, 10, 1, 0.85, 0.175]
+        score_threshold: 0.1
+        out_size_factor: 8
+        voxel_size: ${voxel_size[:2]}
+        nms_type: rotate
+        pre_max_size: 1000
+        post_max_size: 83
+        nms_thr: 0.2
+        nms_type:
+          - circle
+          - rotate
+          - rotate
+          - circle
+          - rotate
+          - rotate
+        nms_scale:
+          - [1.0]
+          - [1.0, 1.0]
+          - [1.0, 1.0]
+          - [1.0]
+          - [1.0, 1.0]
+          - [2.5, 4.0]
+      tasks:
+        - ["car"]
+        - ["truck", "construction_vehicle"]
+        - ["bus", "trailer"]
+        - ["barrier"]
+        - ["motorcycle", "bicycle"]
+        - ["pedestrian", "traffic_cone"]
+      common_heads:
+        reg: [2, 2]
+        height: [1, 2]
+        dim: [3, 2]
+        rot: [2, 2]
+        vel: [2, 2]
+      share_conv_channel: 64
+      bbox_coder:
+        type: CenterPointBBoxCoder
+        pc_range: ${point_cloud_range}
+        post_center_range: [-61.2, -61.2, -10.0, 61.2, 61.2, 10.0]
+        max_num: 500
+        score_threshold: 0.1
+        out_size_factor: 8
+        voxel_size: ${voxel_size[:2]}
+        code_size: 9
+      separate_head:
+        type: SeparateHead
+        init_bias: -2.19
+        final_kernel: 3
+      loss_cls:
+        type: GaussianFocalLoss
+        reduction: mean
+      loss_bbox:
+        type: L1Loss
+        reduction: mean
+        loss_weight: 0.25
+      norm_bbox: true
+      # For Response KD
+      loss_cls_soft:
+        type: Quality_Focal_Loss
+        beta: 2.0
+      loss_bbox_soft:
+        type: SmoothL1Loss
+        beta: 1.0
+        reduction: none
+        loss_weight: 1.0
+      loss_soft_task_weights: [2, 2, 2, 1, 2, 1]
+    
+  # Checkpoint
+  teacher_ckpt_path: '/mnt/ws-frb/users/lingjunz/jingyu-docker/docker/home/KD-CR/runs/LC-centerhead-lssfpn-gated-pc54-relu/epoch_20.pth'
+  student_ckpt_path: '/mnt/ws-frb/users/lingjunz/jingyu-docker/docker/home/KD-CR/runs/CR-centerhead-swint-lsstransform-80-256-256-pc54-gated/epoch_20.pth'
+
+  # L2R
+  lr_kd_loss:
+      type: L1Loss
+      reduction: mean
+      loss_weight: 100.0
+  
+  # Fused feature loss
+  fused_loss:
+    type: Mask_Feat_Loss_Clip
+    loss_weight: 1.0
+  
+  fused_feat_loss_scale_kd: 10.0
+
+  # Fused affinity loss
+  fused_affinity_loss:
+    type: Affinity_Loss
+    reduction: mean
+    loss_weight: 1.0
+    downsample_size: [32, 16, 8, 4]
+    input_channels: 256
+    use_adapt: True
+
+  fused_affinity_loss_scale_kd: 0.25
+
+  # cam feature loss
+  cam_loss:
+    type: Mask_Feat_Loss_Clip
+    loss_weight: 1.0
+
+  cam_feat_loss_scale_kd: 10.0
+
+  scale_bbox: true
+
+
+
+
+# Training Strategy
+optimizer:
+  type: AdamW
+  lr: 0.0001
+  weight_decay: 0.01
+  paramwise_cfg:
+    custom_keys:
+      absolute_pos_embed: 
+        decay_mult: 0
+      relative_position_bias_table:
+        decay_mult: 0
+      # encoders.camera.backbone:
+      #   decay_mult: 0.1
+
+optimizer_config:
+  grad_clip:
+    max_norm: 35
+    norm_type: 2
+
+lr_config:
+  policy: CosineAnnealing
+  warmup: linear
+  warmup_iters: 500
+  warmup_ratio: 0.33333333
+  min_lr_ratio: 1.0e-3
+
+max_epochs: 20
+
+gt_paste_stop_epoch: -1
+
+
+log_config:
+  interval: 50
+  hooks:
+    -
+      type: TextLoggerHook
+    -
+      type: TensorboardLoggerHook
+    -
+      type: WandbLoggerHook
+      init_kwargs: {'project': 'CRKD', 'name': 'feat_fused_10_lr_100_c2c_10_mask_scale_relation_0_25_resp_80_256_test'}

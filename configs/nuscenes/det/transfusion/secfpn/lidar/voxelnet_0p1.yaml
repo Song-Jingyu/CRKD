@@ -1,0 +1,38 @@
+# This config is corresponding to pretrained/lidar-only-det.pth, which is related with the statement in the original paper.
+voxel_size: [0.1, 0.1, 0.2]
+point_cloud_range: [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
+
+model:
+  encoders:
+    lidar:
+      voxelize:
+        max_num_points: 10
+        point_cloud_range: ${point_cloud_range}
+        voxel_size: ${voxel_size}
+        max_voxels: [120000, 160000]
+      backbone:
+        type: SparseEncoder
+        in_channels: 5
+        sparse_shape: [1024, 1024, 41] # 51.2 * 2 / 0.1
+        output_channels: 128
+        order:
+          - conv
+          - norm
+          - act
+        encoder_channels:
+          - [16, 16, 32]
+          - [32, 32, 64]
+          - [64, 64, 128]
+          - [128, 128]
+        encoder_paddings:
+          - [0, 0, 1]
+          - [0, 0, 1]
+          - [0, 0, [1, 1, 0]]
+          - [0, 0]
+        block_type: basicblock
+  heads:
+    object:
+      train_cfg:
+        grid_size: [1024, 1024, 41] # For pc = 51.2, vs = 0.1
+      test_cfg:
+        grid_size: [1024, 1024, 41] # For pc = 51.2, vs = 0.1

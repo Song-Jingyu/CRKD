@@ -1,0 +1,76 @@
+voxel_size: [0.075, 0.075, 0.2]
+point_cloud_range: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
+
+model:
+  encoders:
+    camera:     
+      backbone:
+        type: ResNet
+        depth: 50
+        num_stages: 4
+        out_indices: [0, 1, 2, 3] 
+        norm_cfg:
+          type: BN2d
+          requires_grad: true
+        norm_eval: false
+        init_cfg:
+          type: Pretrained
+          checkpoint: torchvision://resnet50
+      vtransform:
+        xbound: [-54.0, 54.0, 0.3]
+        ybound: [-54.0, 54.0, 0.3]
+    lidar:
+      voxelize:
+        point_cloud_range: ${point_cloud_range}
+        voxel_size: ${voxel_size}
+        max_voxels: [120000, 160000]
+      backbone:
+        sparse_shape: [1440, 1440, 41]
+
+  decoder:
+    backbone:
+      type: GeneralizedResNet
+      in_channels: 256
+      blocks:
+        - [2, 128, 2]
+        - [2, 256, 2]
+        - [2, 512, 1]
+    neck:
+      type: LSSFPN
+      in_indices: [-1, 0]
+      in_channels: [512, 128]
+      out_channels: 256
+      scale_factor: 2
+
+  heads:
+    object:
+      train_cfg:
+        grid_size: [1440, 1440, 41]
+      test_cfg:
+        grid_size: [1440, 1440, 41]
+        nms_type:
+          - circle
+          - rotate
+          - rotate
+          - circle
+          - rotate
+          - rotate
+        nms_scale:
+          - [1.0]
+          - [1.0, 1.0]
+          - [1.0, 1.0]
+          - [1.0]
+          - [1.0, 1.0]
+          - [2.5, 4.0]
+
+
+log_config:
+  interval: 50
+  hooks:
+    -
+      type: TextLoggerHook
+    -
+      type: TensorboardLoggerHook
+    -
+      type: WandbLoggerHook
+      init_kwargs: {'project': 'CRKD', 'name': 'LC_80_256_256_8x4_gated_resnet'}
