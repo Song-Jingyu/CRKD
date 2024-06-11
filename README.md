@@ -10,7 +10,8 @@
 
 ## News
 
-- **(2024/2/26)** CRKD is accepted to CVPR 2024!
+- **(2024/06)** Code is released!
+- **(2024/02)** CRKD is accepted to CVPR 2024!
 
 ## Abstract
 
@@ -18,7 +19,7 @@ In the field of 3D object detection for autonomous driving, LiDAR-Camera (LC) fu
 
 ## Results
 
-### 3D Object Detection (on nuScenes val)
+### 3D Object Detection (on the nuScenes val)
 Can comment baseline lines if we don't need to show them
 
 |   Model   | Modality | Backbone | Resolution  | mAP  | NDS  |
@@ -33,7 +34,7 @@ Can comment baseline lines if we don't need to show them
 | [CRKD](https://drive.google.com/file/d/1qtJOIORNR9DyqR4mhg1WPKjy5a5NRBkL/view?usp=sharing)  |   C+R    |   SwinT  |   256x704   | 46.7 | 57.3 |
 
 
-### 3D Object Detection (on nuScenes test)
+### 3D Object Detection (on the nuScenes test)
 
 |   Model   | Modality | Backbone | Resolution  | mAP  | NDS  |
 | :-------: | :------: | :------: | :---------: | :--: | :--: |
@@ -73,7 +74,7 @@ git clone https://github.com/Song-Jingyu/CRKD.git && cd CRKD
 ```
 
 ```bash
-# Before set up the environment, ensure the following command lines exist in the bevfusion/setup.py file.
+# Before set up the environment, make sure the following command lines exist in the CRKD/setup.py file.
 make_cuda_ext(
                 name="feature_decorator_ext",
                 module="mmdet3d.ops.feature_decorator",
@@ -93,7 +94,7 @@ You can then create a symbolic link `data` to the `/dataset` directory in the do
 ```bash
 # Our dataset path
 # Please change to your path before use
-/mnt/ws-frb/users/lingjunz/nuScenes/data/dataset/
+/the_path_to_your_dataset/dataset/
 ```
 
 ### Data Preparation
@@ -127,6 +128,8 @@ Note: please change the dataset path to yours in the config files before running
 
 ### Training
 We provide pretrained student and teacher models to reproduce our results on nuScenes. For the training details of the student and teacher models, please refer to [BEVFusion](https://github.com/mit-han-lab/bevfusion).
+
+Note: please change the teacher and student checkpoint path to yours in the config files before running any experiment!
 
 For LiDAR-camera teacher model, please run:
 
