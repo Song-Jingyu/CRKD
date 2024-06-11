@@ -20,7 +20,6 @@ In the field of 3D object detection for autonomous driving, LiDAR-Camera (LC) fu
 ## Results
 
 ### 3D Object Detection (on the nuScenes val)
-Can comment baseline lines if we don't need to show them
 
 |   Model   | Modality | Backbone | Resolution  | mAP  | NDS  |
 | :-------: | :------: | :------: | :---------: | :--: | :--: |
