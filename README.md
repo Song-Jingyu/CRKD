@@ -202,10 +202,12 @@ Note: please run `tools/test.py` separately after training to get the final eval
 If CRKD is useful or relevant to your research, please kindly recognize our contributions by citing our paper:
 
 ```bibtex
-@inproceedings{zhao2024crkd,
-  author    = {Zhao, Lingjun and Song, Jingyu and Skinner, Katherine A},
-  title     = {CRKD: Enhanced Camera-Radar Object Detection with Cross-modality Knowledge Distillation},
-  journal   = {2024 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-  year      = {2024},
+@InProceedings{Zhao_2024_CRKD,
+    author    = {Zhao, Lingjun and Song, Jingyu and Skinner, Katherine A.},
+    title     = {CRKD: Enhanced Camera-Radar Object Detection with Cross-modality Knowledge Distillation},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month     = {June},
+    year      = {2024},
+    pages     = {15470-15480}
 }
 ```
